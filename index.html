@@ -26,57 +26,315 @@
 			<div class="slides">
 				<section class="intro-slide">
 					<img class="logo" src="img/logo-positive.svg" alt="Quantlane">
-					<h1>Talk title</h1>
-					<h2>Name Surname <span class="divider">|</span> Event name</h2>
-					<h3><span>Month XX, 201X</span></h3>
+					<h1>Feeding a real-time user&nbsp;interface</h1>
+					<h2>Vita Smid <span class="divider">|</span> EuroPython 2017</h2>
+					<h3><span>July 11, 2017</span></h3>
 				</section>
 
+
+<!-- 1. Intro -->
+
+				<section data-background-image="img/wallpaper.svg">
+				</section>
 
 				<section>
-					<h2>Speaker's personal intro</h2>
-					<ul>
-						<li class="fragment">Stuff</li>
-						<li class="fragment">Stuff</li>
-						<li class="fragment">Stuff</li>
-					</ul>
+					<h2>Hi, I am Vita.</h2>
+					I am a software engineer specializing in difficult, mathy&nbsp;problems.
 				</section>
-
 
 				<section>
 					<h2 class="logo-heading"><img src="img/logo-positive-horizontal.svg" alt="Quantlane"></h2>
 					<ul>
-						<li class="fragment">Small focused team</li>
-						<li class="fragment">We develop a trading platform and strategies</li>
-						<li class="fragment">All back-end code is Python 3.5</li>
-						<li class="fragment">We also like numpy, ReactJS, Redis, Kafka, PostgreSQL, TensorFlow, &hellip;</li>
+						<li class="fragment">We develop <em>and run</em> a stock trading platform and trading strategies.</li>
+						<li class="fragment">Small team, lean principles.</li>
+						<li class="fragment">All back-end code is Python 3.5 / 3.6.</li>
 					</ul>
+					<aside class="notes">
+						We've been successfuly doing this for three years.
+						But this talk is not about trading. I hope it makes you think about data and how it is manipulated.
+					</aside>
 				</section>
 
+<!-- 2. Our challenge -->
 
 				<section>
-					<h2>Title</h2>
+					<img src="img/trading_platform1-edit.svg" class="borderless" alt="">
+					<aside class="notes">
+						Users = traders.
+						Importantly, incoming diffs from the data provider don't immediately translate into UI updates.
+						We have a web interface connected through WebSockets, but that's not very important.
+					</aside>
+				</section>
+
+				<section class="dont-highlight-current-fragment">
+					<h2>Example 1</h2>
+					<h3>Trades</h3>
+					<table class="fragment">
+						<tr>
+							<th>Time</th>
+							<th>Price</th>
+							<th style="text-align: right">Quantity</th>
+						</tr>
+						<tr>
+							<td>1499530305.593857</td>
+							<td>23.45</td>
+							<td style="text-align: right">500</td>
+						</tr>
+						<tr>
+							<td>1499530305.649646</td>
+							<td>23.46</td>
+							<td style="text-align: right">323</td>
+						</tr>
+						<tr class="fragment">
+							<td><mark>1499530306.024135</mark></td>
+							<td><mark>23.46</mark></td>
+							<td style="text-align: right"><mark>107</mark></td>
+						</tr>
+						<tr class="fragment">
+							<td><mark>1499530307.153155</mark></td>
+							<td><mark>23.45</mark></td>
+							<td style="text-align: right"><mark>1,300</mark></td>
+						</tr>
+					</table>
+					<aside class="notes">
+						Append-only list of transactions executed on the exchange.
+					</aside>
+				</section>
+
+				<section class="dont-highlight-current-fragment">
+					<h2>Example 2</h2>
+					<h3>Open orders in the market</h3>
+					<table class="fragment" data-fragment-index="0">
+						<tr>
+							<th>Side</th>
+							<th>Price</th>
+							<th style="text-align: right">Quantity</th>
+							<th style="min-width: 8em">Status</th>
+						</tr>
+						<tr>
+							<td>Buy</td>
+							<td>23.40</td>
+							<td style="text-align: right">1,500</td>
+							<td>
+								<div style="position:relative" >
+									<div class="fragment fade-out" style="position:absolute; margin-left: auto; margin-right: auto; left: 0; right: 0;" data-fragment-index="2">
+										new
+									</div>
+									<div class="fragment fade-in" style="position:absolute; margin-left: auto; margin-right: auto; left: 0; right: 0;" data-fragment-index="2">
+										<mark>pending cancel&hellip;</mark>
+									</div>
+								</div>
+							</td>
+						</tr>
+						<tr>
+							<td>Sell</td>
+							<td>
+								<div style="position:relative" >
+									<div class="fragment fade-out" style="position:absolute; margin-left: auto; margin-right: auto; left: 0; right: 0;" data-fragment-index="3">
+										23.95
+									</div>
+									<div class="fragment fade-in" style="position:absolute; margin-left: auto; margin-right: auto; left: 0; right: 0;" data-fragment-index="3">
+										<mark>24.00</mark>
+									</div>
+								</div>
+							</td>
+							<td style="text-align: right">900</td>
+							<td>new</td>
+						</tr>
+						<tr class="fragment" data-fragment-index="1">
+							<td><mark>Buy</mark></td>
+							<td><mark>23.30</mark></td>
+							<td style="text-align: right"><mark>2,000</mark></td>
+							<td><mark>creating&hellip;</mark></td>
+						</tr>
+					</table>
+					<aside class="notes">
+						Just some examples of what state we deal with, but of course any real-time application with a UI
+						will have similar data structures.
+					</aside>
+				</section>
+
+<!-- 3. Solutions -->
+
+				<section>
+					<h1>Take 1</h1>
+					<h2>Naïve snapshots</h2>
 					<ul>
-						<li class="fragment">Stuff</li>
-						<li class="fragment">Stuff</li>
-						<li class="fragment">Stuff</li>
+						<li class="fragment">
+							Give each data producer in the platform a
+							<code>get_state</code> method.
+						</li>
+						<li class="fragment">Call all <code>get_state</code> methods periodically.</li>
+						<li class="fragment">Encode their return values in JSON and send them to clients.</li>
+					</ul>
+					<aside class="notes">
+						This actually worked for us in the beginning when there wasn't a lot of data.
+					</aside>
+				</section>
+
+				<section>
+					<h1>Take 2</h1>
+					<h2><em>Diffing</em> snapshots</h2>
+					<ul>
+						<li class="fragment">Keep calling the <code>get_state</code> methods.</li>
+						<li class="fragment">Instead of sending their return values to clients, you send <em>incremental updates</em> &ndash; diffs.</li>
+						<li class="fragment">You remember the last state seen by clients and compare new state to it to generate diffs.</li>
+					</ul>
+					<aside class="notes">
+						This treats the state as a black box.
+					</aside>
+				</section>
+
+				<section>
+					<h3><a href="https://docs.python.org/3/library/difflib.html">docs.python.org/3/library/difflib.html</a></h3>
+					<div>
+					<pre><code class="python" data-trim data-noescape>
+import difflib
+x = ('one', 'two', 'three')
+y = ('two', 'two point five', 'four')
+matcher = difflib.SequenceMatcher(None, x, y)
+matcher.get_opcodes()
+</code></pre>
+					</div>
+					<div class="fragment">
+					<pre><code class="python" data-trim data-noescape>
+[('delete', 0, 1, 0, 0), ('equal', 1, 2, 0, 1),
+ ('replace', 2, 3, 1, 3)]
+</code></pre>
+					</div>
+					<aside class="notes">
+						This is useful any time you want to diff a sequence of items - e.g. a sequence of trades or orders.
+					</aside>
+				</section>
+
+				<section>
+					<h2>Why this is difficult #1</h2>
+					<ul>
+						<li class="fragment">When a new client connects, you still have to send them a snapshot to get them started.</li>
+						<li class="fragment">You might end up doing a lot of unnecessary work in your <code>get_state</code> methods&hellip;</li>
+						<li class="fragment">&hellip;so your data producers should also set and clear a <code>has_changed</code> flag.</li>
+					</ul>
+					<aside class="notes">
+						This is doable but complex. Lots of bugs arise when you forget to set has_changed somewhere.
+					</aside>
+				</section>
+
+				<section>
+					<h2>Why this is difficult #2</h2>
+					<ul>
+						<li class="fragment">Difflib only works with sequences of <em>hashable</em> items.</li>
+						<li class="fragment">Therefore, you must have a canonical hashable representation of every piece of state
+						you want to send to the client.</li>
+						<li class="fragment">For small sequences it&rsquo;s faster to just send a snapshot 🙄</li>
+					</ul>
+					<aside class="notes">
+						I'm listing all these problems because I find them interesting to think about.
+						Even if you didn't have the hashability requirement, you'd have to make deep copies!
+						Some of my favourite interview questions come from this area.
+					</aside>
+				</section>
+
+				<section>
+					<h2>Take 3</h2>
+					<h3>Generating diffs on every state write</h3>
+					<ul>
+						<li class="fragment">Every time you call&hellip;<br><code>orders.insert(123, new_order)</code></li>
+						<li class="fragment">&hellip;something somewhere remembers that<br><code>('insert', 123, new_order)</code> happened.</li>
+						<li class="fragment">Same goes for <code>orders[123] = updated_order</code> and <code>del orders[123]</code></li>
 					</ul>
 				</section>
 
-
 				<section>
-					<h2>Code</h2>
+					<h3><a href="https://github.com/qntln/difftrack">github.com/qntln/difftrack</a></h3>
+					<div>
 					<pre><code class="python" data-trim data-noescape>
-	<mark>print</mark>('Hello world')
-					</code></pre>
+import difftrack
+orders = difftrack.ListDispatcher()
+listener = difftrack.ListListener()
+orders.add_listener(listener)
+</code></pre>
+					</div>
+					<div class="fragment">
+					<pre><code class="python" data-trim data-noescape>
+orders.insert(0, Order(side=BUY, price=23.95, quantity=500))
+orders.insert(1, Order(side=SELL, price=24.30, quantity=100))
+del orders[0]
+print(listener.get_new_diffs())
+</code></pre>
+					</div>
+
+					<div class="fragment">
+					<pre><code class="python" data-trim data-noescape>
+[(&lt;ListDiff.INSERT&gt;, 0, Order(side=BUY, price=23.95, ...)),
+ (&lt;ListDiff.INSERT&gt;, 1, Order(side=SELL, price=24.30, ...)),
+ (&lt;ListDiff.DELETE&gt;, 0, None)]
+</code></pre>
+					</div>
+					<aside class="notes">
+					</aside>
 				</section>
 
+				<section>
+					<h3>Snapshots are automatically supported</h3>
+					<div>
+					<pre><code class="python" data-trim data-noescape>
+>>> listener.get_snapshot()
+[Order(side=SELL, price=24.30, quantity=100)]
+</code></pre>
+					</div>
+
+					<div class="fragment">
+						<h3>Old diffs are dropped</h3>
+					<pre><code class="python" data-trim data-noescape>
+>>> listener.get_new_diffs()
+[]
+</code></pre>
+					</div>
+					<aside class="notes">
+					</aside>
+				</section>
+
+				<section>
+					<h2>There is more&hellip;</h2>
+					<ul>
+						<li class="fragment">You can also track dictionary diffs.</li>
+						<li class="fragment">
+							You can <em>compact</em> diffs that cancel each other out. <br>
+							<small class="fragment">(coming soon&hellip;)</small>
+						</li>
+						<li class="fragment">You can <em>squash</em> (aggregate) diffs affecting subsequent indices.</li>
+					</ul>
+				</section>
+
+				<section>
+					<h2>Beyond diffs</h2>
+					<ul>
+						<li class="fragment">Consider using a custom binary protocol to send updates to clients.</li>
+						<li class="fragment">We use <a href="https://avro.apache.org">Apache Avro</a> to encode payloads.</li>
+						<li class="fragment">Each message type has a schema which also serves as documentation.</li>
+					</ul>
+					<aside class="notes">
+						JSON is wasteful. Human-readable payloads are overrated.
+					</aside>
+				</section>
+
+				<section class="dont-highlight-current-fragment">
+					<h2>Inspiration</h2>
+					<ul>
+						<li class="fragment"><a href="https://www.meteor.com">Meteor</a></li>
+						<li class="fragment"><a href="https://blogs.janestreet.com/introducing-incremental/">Incremental</a>
+						by Jane Street and its <a href="https://blogs.janestreet.com/seven-implementations-of-incremental/">evolution</a></li>
+					</ul>
+					<aside class="notes">
+					</aside>
+				</section>
 
 				<section class="thankyou-slide" data-background-color="#000000">
 					<img class="logo" src="img/logo-negative.svg" alt="Quantlane">
 					<br>
 					<h1>Thank you</h1>
 					<h2>
-						<a href="mailto:XXX@quantlane.com"><span class="email-name">name@</span>quantlane.com</a>
+						<a href="mailto:vita@quantlane.com"><span class="email-name">vita@</span>quantlane.com</a>
 					</h2>
 					<h2>
 						<a href="https://twitter.com/quantlane" class="twitter-link">twitter.com/quantlane</a>

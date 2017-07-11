@@ -1,0 +1,14 @@
+digraph trading_platform {
+
+	rankdir=LR
+
+	"Market data provider" -> "Trading platform" [ label = "  Anonymous data" ]
+	"Trading platform" -> "Stock exchange" [ label = "  Orders to buy or sell" ]
+
+	"Trading platform" -> "User interface" [ label = "Data" ]
+	"User interface" -> "Trading platform" [ label = "Commands" ]
+
+	{
+		rank=same; "Trading platform";"User interface";
+	}
+}
